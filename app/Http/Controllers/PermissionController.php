@@ -15,7 +15,8 @@ class PermissionController extends Controller
     {
         $permissions = Permission::query()
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->paginate(perPage: 10, pageName: 'page', columns: ['id', 'name'])
+            ->withQueryString();
 
         return Inertia::render('permissions/index', [
             'permissions' => $permissions,
