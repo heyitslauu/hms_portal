@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -24,6 +25,11 @@ Route::middleware(['auth'])->group(function () {
         Route::post('roles', [RoleController::class, 'store'])->name('roles.store');
         Route::patch('roles/{role}', [RoleController::class, 'update'])->name('roles.update');
         Route::delete('roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
+
+        Route::get('users', [UserController::class, 'index'])->name('users');
+        Route::post('users', [UserController::class, 'store'])->name('users.store');
+        Route::patch('users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 });
 

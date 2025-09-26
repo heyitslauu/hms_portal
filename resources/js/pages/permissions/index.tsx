@@ -8,6 +8,7 @@ import { permissions as permissionsRoute } from '@/routes';
 import perms from '@/routes/permissions';
 import { type BreadcrumbItem } from '@/types';
 
+import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -21,8 +22,11 @@ type Permission = {
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Permissions', href: permissionsRoute().url }];
 
 export default function Permissions() {
-    const { permissions: permissionList } = usePage<{ permissions: Permission[] }>().props;
-    const data = permissionList ?? [];
+    type PageLink = { url: string | null; label: string; active: boolean };
+    const { permissions: pagination } = usePage<{
+        permissions: { data: Permission[]; links: PageLink[]; meta: { from: number; to: number; total: number } };
+    }>().props;
+    const data = pagination?.data ?? [];
 
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
@@ -208,6 +212,7 @@ export default function Permissions() {
                         </TableBody>
                     </Table>
                 </div>
+                <Pagination links={pagination?.links ?? []} meta={pagination?.meta} />
             </div>
         </AppLayout>
     );

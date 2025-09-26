@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import roles from '@/routes/roles';
 
+import Pagination from '@/components/pagination';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 type RolePermissionPivot = {
@@ -33,9 +34,14 @@ type Role = {
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Roles', href: rolesRoutes().url }];
 export default function Roles() {
-    const { roles: rolesList, permissions: allPermissions } = usePage<SharedData & { roles: Role[]; permissions?: { id: number; name: string }[] }>()
-        .props;
-    const data = rolesList ?? [];
+    type PageLink = { url: string | null; label: string; active: boolean };
+    const { roles: pagination, permissions: allPermissions } = usePage<
+        SharedData & {
+            roles: { data: Role[]; links: PageLink[]; meta: { from: number; to: number; total: number } };
+            permissions?: { id: number; name: string }[];
+        }
+    >().props;
+    const data = pagination?.data ?? [];
     const [createOpen, setCreateOpen] = useState(false);
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
@@ -270,6 +276,7 @@ export default function Roles() {
                         </TableBody>
                     </Table>
                 </div>
+                <Pagination links={pagination?.links ?? []} meta={pagination?.meta} />
             </div>
         </AppLayout>
     );

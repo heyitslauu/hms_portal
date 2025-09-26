@@ -18,7 +18,9 @@ class RoleController extends Controller
         $roles = Role::query()
             ->with(['permissions:id,name'])
             ->orderBy('name')
-            ->get(['id', 'name']);
+            ->paginate(perPage: 10, pageName: 'page', columns: ['id', 'name'])
+            ->withQueryString();
+
         $permissions = Permission::query()->orderBy('name')->get(['id', 'name']);
 
         return Inertia::render('roles/index', [
