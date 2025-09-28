@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\PatientController;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -30,6 +31,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('users', [UserController::class, 'store'])->name('users.store');
         Route::patch('users/{user}', [UserController::class, 'update'])->name('users.update');
         Route::delete('users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+        Route::get('patients', [PatientController::class, 'index'])->name('patients');
+        Route::post('patients', [PatientController::class, 'store'])->name('patients.store');
     });
 });
 
