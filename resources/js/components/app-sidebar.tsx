@@ -2,10 +2,10 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
-import { dashboard, permissions, roles, users } from '@/routes';
+import { dashboard, patients, permissions, roles, users } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, IdCard, LayoutGrid, Shield, SquareUserIcon } from 'lucide-react';
+import { BookOpen, Folder, IdCard, LayoutGrid, Shield, ShieldPlus, SquareUserIcon } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
@@ -28,6 +28,11 @@ const mainNavItems: NavItem[] = [
         title: 'Users',
         href: users(),
         icon: SquareUserIcon,
+    },
+    {
+        title: 'Patients',
+        href: patients(),
+        icon: ShieldPlus,
     },
 ];
 
