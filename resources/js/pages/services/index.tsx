@@ -35,6 +35,12 @@ export default function ServiceOfferingsIndex() {
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold">Service Offerings</h1>
                 </div>
+                <div>
+                    <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+                        The prices listed are subject to change without prior notice and may differ at the time of billing or payment at the cashier.
+                        For the most accurate and up-to-date pricing, please contact us directly.
+                    </p>
+                </div>
                 <div className="rounded-md border">
                     <Table>
                         <TableHeader>
@@ -56,7 +62,7 @@ export default function ServiceOfferingsIndex() {
                                             {o.description ?? '—'}
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            {Number(o.price).toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
+                                            {Number(o.price).toLocaleString(undefined, { style: 'currency', currency: 'PHP' })}
                                         </TableCell>
                                         <TableCell>
                                             {o.is_available ? (
