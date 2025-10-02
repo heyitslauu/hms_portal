@@ -1,9 +1,8 @@
 <?php
 
 return [
-    'HR',
-    'IT',
-    'Finance',
-    'Sales',
-    'Operations',
+    'laboratory',
+    'imaging',
+    'obgyn',
+    'heart-station',
 ];
