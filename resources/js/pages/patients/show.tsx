@@ -1,11 +1,17 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { hasPermission } from '@/hooks/usePermissions';
 import AppLayout from '@/layouts/app-layout';
 import { patients as patientsRoute } from '@/routes';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Head, Link, usePage } from '@inertiajs/react';
-import { ArrowLeft, Calendar, Mail, MapPin, Phone, User } from 'lucide-react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { ArrowLeft, Calendar, ExternalLink, FileText, Mail, MapPin, Phone, Upload, User, X } from 'lucide-react';
+import { useState } from 'react';
 
 type Patient = {
     id: number;
@@ -20,12 +26,39 @@ type Patient = {
     updated_at: string;
 };
 
+type ServiceOffering = {
+    id: number;
+    name: string;
+    type: string;
+    description?: string;
+    price: number;
+    is_available: boolean;
+};
+
+type ServiceResult = {
+    id: number;
+    patient_id: number;
+    service_name: string;
+    service_type: string;
+    written_result?: string;
+    file_path?: string[];
+    created_at: string;
+    updated_at: string;
+    uploaded_by?: {
+        id: number;
+        name: string;
+        email: string;
+    };
+};
+
 interface PatientShowPageProps extends SharedData {
     patient: Patient;
+    serviceOfferings: ServiceOffering[];
+    serviceResults: ServiceResult[];
 }
 
 export default function PatientShow() {
-    const { patient } = usePage<PatientShowPageProps>().props;
+    const { patient, auth, serviceOfferings: propsServiceOfferings, serviceResults } = usePage<PatientShowPageProps>().props;
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Patients', href: patientsRoute().url },
@@ -35,6 +68,61 @@ export default function PatientShow() {
     // Permission checks
     const canView = hasPermission('patients.view');
     const canEdit = hasPermission('patients.edit');
+    const canUploadResults = hasPermission('results.upload');
+
+    // Dialog and form state
+    const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+    const uploadForm = useForm({
+        patient_id: patient.id,
+        service_offering_id: '',
+        notes: '',
+        files: [] as File[],
+    });
+
+    // Use service offerings from props (no need to fetch separately)
+    const serviceOfferings = propsServiceOfferings || [];
+
+    // Handle file selection with validation
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const selectedFiles = Array.from(event.target.files || []);
+
+        // Validate file types (images and PDFs only)
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg', 'application/pdf'];
+        const validFiles = selectedFiles.filter((file) => allowedTypes.includes(file.type));
+        const invalidFiles = selectedFiles.filter((file) => !allowedTypes.includes(file.type));
+
+        if (invalidFiles.length > 0) {
+            alert(`Invalid file types: ${invalidFiles.join(', ')}. Only images and PDF files are allowed.`);
+        }
+
+        uploadForm.setData('files', [...uploadForm.data.files, ...validFiles]);
+    };
+
+    // Remove selected file
+    const removeFile = (index: number) => {
+        uploadForm.setData(
+            'files',
+            uploadForm.data.files.filter((_, i) => i !== index),
+        );
+    }; // Handle form submission
+    const handleSubmitResult = (event: React.FormEvent) => {
+        event.preventDefault();
+
+        if (!uploadForm.data.service_offering_id) {
+            alert('Please select a service offering');
+            return;
+        }
+
+        uploadForm.post('/service-results', {
+            onSuccess: () => {
+                setUploadDialogOpen(false);
+                uploadForm.reset();
+            },
+            onError: (errors) => {
+                console.error('Upload failed:', errors);
+            },
+        });
+    };
 
     // If user doesn't have view permission, show access denied
     if (!canView) {
@@ -189,19 +277,206 @@ export default function PatientShow() {
                     </Card>
                 </div>
 
-                {/* Future sections can be added here */}
+                {/* Service Results Section */}
                 <div className="grid gap-6 md:grid-cols-1">
-                    {/* Medical History */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Medical Records</CardTitle>
-                            <CardDescription>Patient's medical history and appointments (Coming Soon)</CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                            <div>
+                                <CardTitle>Medical Records</CardTitle>
+                                <CardDescription>
+                                    {serviceResults.length > 0
+                                        ? `${serviceResults.length} medical result${serviceResults.length === 1 ? '' : 's'} on file`
+                                        : 'No medical results on file'}
+                                </CardDescription>
+                            </div>
+                            {canUploadResults && (
+                                <Button variant="outline" size="sm" onClick={() => setUploadDialogOpen(true)}>
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Upload Result
+                                </Button>
+                            )}
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">Medical records and appointment history will be displayed here.</p>
+                            {serviceResults.length > 0 ? (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Service</TableHead>
+                                            <TableHead>Type</TableHead>
+                                            <TableHead>Notes</TableHead>
+                                            <TableHead>Files</TableHead>
+                                            <TableHead>Uploaded By</TableHead>
+                                            <TableHead>Date</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {serviceResults.map((result) => (
+                                            <TableRow key={result.id}>
+                                                <TableCell className="font-medium">{result.service_name}</TableCell>
+                                                <TableCell>
+                                                    <span className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                                                        {result.service_type}
+                                                    </span>
+                                                </TableCell>
+                                                <TableCell className="max-w-xs">
+                                                    {result.written_result ? (
+                                                        <div className="truncate" title={result.written_result}>
+                                                            {result.written_result}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground italic">No notes</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {result.file_path && result.file_path.length > 0 ? (
+                                                        <div className="flex flex-col gap-1">
+                                                            {result.file_path.map((filePath, index) => {
+                                                                const fileName = filePath.split('/').pop() || 'Unknown file';
+                                                                const fileExtension = fileName.split('.').pop()?.toLowerCase();
+                                                                const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(fileExtension || '');
+                                                                // Use backend route for secure file access
+                                                                const fileUrl = `/service-results/file/${result.id}/${index}`;
+
+                                                                return (
+                                                                    <div key={index} className="flex items-center gap-1">
+                                                                        <FileText className="h-3 w-3" />
+                                                                        <a
+                                                                            href={fileUrl}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                                                                            title={`View ${fileName}`}
+                                                                        >
+                                                                            {fileName.length > 15 ? `${fileName.substring(0, 15)}...` : fileName}
+                                                                            <ExternalLink className="h-2 w-2" />
+                                                                        </a>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-sm text-muted-foreground italic">No files</span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell className="text-sm">{result.uploaded_by?.name || 'Unknown'}</TableCell>
+                                                <TableCell className="text-sm text-muted-foreground">{formatDate(result.created_at)}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <div className="py-8 text-center">
+                                    <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                                    <h3 className="mt-2 text-sm font-semibold text-muted-foreground">No medical results</h3>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {canUploadResults
+                                            ? 'Upload the first medical result for this patient.'
+                                            : 'No medical results have been uploaded yet.'}
+                                    </p>
+                                    {canUploadResults && (
+                                        <Button variant="outline" size="sm" className="mt-4" onClick={() => setUploadDialogOpen(true)}>
+                                            <Upload className="mr-2 h-4 w-4" />
+                                            Upload First Result
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Upload Result Dialog */}
+                <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+                    <DialogContent className="max-w-md">
+                        <DialogHeader>
+                            <DialogTitle>Upload Medical Result</DialogTitle>
+                            <DialogDescription>
+                                Upload medical test results or documents for {patient.first_name} {patient.last_name}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleSubmitResult}>
+                            <div className="space-y-4 py-4">
+                                {/* Service Selection */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="service_offering">Service/Test Type *</Label>
+                                    <Select
+                                        value={uploadForm.data.service_offering_id}
+                                        onValueChange={(value) => uploadForm.setData('service_offering_id', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder={serviceOfferings.length === 0 ? 'No services available' : 'Select a service'} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {serviceOfferings.map((service) => (
+                                                <SelectItem key={service.id} value={service.id.toString()}>
+                                                    {service.name}
+                                                    {service.description && (
+                                                        <span className="ml-2 text-xs text-muted-foreground">- {service.description}</span>
+                                                    )}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                {/* Additional Notes */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="notes">Additional Medical/Doctor Notes</Label>
+                                    <textarea
+                                        id="notes"
+                                        className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                                        placeholder="Enter any additional notes or observations..."
+                                        value={uploadForm.data.notes}
+                                        onChange={(e) => uploadForm.setData('notes', e.target.value)}
+                                    />
+                                </div>
+
+                                {/* File Upload */}
+                                <div className="space-y-2">
+                                    <Label htmlFor="files">Files (Images & PDFs only)</Label>
+                                    <Input
+                                        id="files"
+                                        type="file"
+                                        multiple
+                                        accept="image/*,.pdf"
+                                        onChange={handleFileChange}
+                                        className="file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-4 file:py-2 file:text-sm file:font-medium"
+                                    />
+                                    <p className="text-xs text-muted-foreground">Supported formats: JPG, PNG, GIF, PDF</p>
+
+                                    {/* Selected Files List */}
+                                    {uploadForm.data.files.length > 0 && (
+                                        <div className="mt-2 space-y-2">
+                                            <Label className="text-sm font-medium">Selected Files:</Label>
+                                            {uploadForm.data.files.map((file, index) => (
+                                                <div key={index} className="flex items-center justify-between rounded-md border p-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <FileText className="h-4 w-4" />
+                                                        <span className="text-sm">{file.name}</span>
+                                                        <span className="text-xs text-muted-foreground">
+                                                            ({(file.size / 1024 / 1024).toFixed(1)} MB)
+                                                        </span>
+                                                    </div>
+                                                    <Button type="button" variant="ghost" size="sm" onClick={() => removeFile(index)}>
+                                                        <X className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setUploadDialogOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="submit" disabled={!uploadForm.data.service_offering_id || uploadForm.processing}>
+                                    {uploadForm.processing ? 'Uploading...' : 'Upload Result'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
             </div>
         </AppLayout>
     );
