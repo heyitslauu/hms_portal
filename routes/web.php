@@ -8,6 +8,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PatientController;
 use App\Http\Controllers\ServiceOfferingController;
+use App\Http\Controllers\ServiceResultController;
 
 Route::get('/', function () {
     if (Auth::check()) {
@@ -50,6 +51,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('patients', [PatientController::class, 'store'])->name('patients.store');
         Route::patch('patients/{patient}', [PatientController::class, 'update'])->name('patients.update');
         Route::delete('patients/{patient}', [PatientController::class, 'destroy'])->name('patients.destroy');
+
+        Route::post('service-results', [ServiceResultController::class, 'store'])->name('service-results.store');
+        Route::get('service-results/file/{serviceResult}/{fileIndex}', [ServiceResultController::class, 'downloadFile'])->name('service-results.download');
     });
 });
 
