@@ -2,7 +2,12 @@ import { InertiaLinkProps } from '@inertiajs/react';
 import { LucideIcon } from 'lucide-react';
 
 export interface Auth {
-    user: User;
+    user:
+        | (User & {
+              roles: string[];
+              permissions: string[];
+          })
+        | null;
 }
 
 export interface BreadcrumbItem {
@@ -20,6 +25,7 @@ export interface NavItem {
     href: NonNullable<InertiaLinkProps['href']>;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    permission?: string;
 }
 
 export interface SharedData {
