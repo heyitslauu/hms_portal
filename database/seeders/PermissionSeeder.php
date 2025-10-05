@@ -61,7 +61,10 @@ class PermissionSeeder extends Seeder
             'services.view_offered',
 
             // Results
+            'results.upload',
             'results.view_tests',
+            'results.update',
+            'results.delete',
             'results.view_procedures',
 
             // Financials
