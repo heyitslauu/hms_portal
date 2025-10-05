@@ -29,6 +29,18 @@ class PatientController extends Controller
     }
 
     /**
+     * Display the specified patient details.
+     */
+    public function show(Patient $patient): Response
+    {
+        $patient->load(['user:id,name,email,created_at']);
+
+        return Inertia::render('patients/show', [
+            'patient' => $patient,
+        ]);
+    }
+
+    /**
      * Store a newly created patient (and associated user) in storage.
      * Uses the injected Patient model instance instead of the global request helper for creation.
      */
