@@ -46,6 +46,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::middleware('role:receptionist')->group(function () {
         Route::get('patients', [PatientController::class, 'index'])->name('patients');
+        Route::get('patients/{patient}', [PatientController::class, 'show'])->name('patients.show');
         Route::post('patients', [PatientController::class, 'store'])->name('patients.store');
         Route::patch('patients/{patient}', [PatientController::class, 'update'])->name('patients.update');
         Route::delete('patients/{patient}', [PatientController::class, 'destroy'])->name('patients.destroy');
