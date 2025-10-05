@@ -8,7 +8,7 @@ import AppLayout from '@/layouts/app-layout';
 import { patients as patientsRoute } from '@/routes';
 import patients from '@/routes/patients';
 import { type BreadcrumbItem, type SharedData } from '@/types';
-import { Form, Head, usePage } from '@inertiajs/react';
+import { Form, Head, Link, usePage } from '@inertiajs/react';
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { LoaderCircle, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -56,10 +56,10 @@ export default function PatientsIndex() {
                 cell: ({ row }) => {
                     const p = row.original;
                     return (
-                        <span className="font-medium">
+                        <Link href={patients.show.url(p.id)} className="font-medium text-primary hover:underline">
                             {p.first_name} {p.middle_name ? p.middle_name + ' ' : ''}
                             {p.last_name}
-                        </span>
+                        </Link>
                     );
                 },
             },
