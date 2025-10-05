@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ServiceOffering;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -14,15 +15,33 @@ class ServiceOfferingController extends Controller
     /**
      * Display a listing of the service offerings.
      */
-    public function index(): Response
+    public function index(Request $request): Response
     {
-        $offerings = ServiceOffering::query()
+        $search = $request->get('search');
+        $type = $request->get('type');
+
+        $query = ServiceOffering::query();
+
+        if ($request->filled('search')) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        if (Auth::check() && $request->filled('type') && $type !== 'all') {
+            $query->where('type', $type);
+        }
+
+        $offerings = $query
             ->latest('id')
             ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('services/index', [
             'offerings' => $offerings,
+            'filters' => [
+                'search' => $search,
+                'type' => $type,
+            ],
+            'departments' => config('departments'),
         ]);
     }
 
