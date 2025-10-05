@@ -36,16 +36,21 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
+        // Check if receptionist role is selected to make department required
+        $isReceptionist = false;
+        if (!empty($request->input('roles'))) {
+            $receptionistRole = Role::where('name', 'receptionist')->first();
+            $isReceptionist = $receptionistRole && in_array($receptionistRole->id, $request->input('roles', []));
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'department' => ['nullable', Rule::in(config('departments'))],
+            'department' => $isReceptionist ? ['required', Rule::in(config('departments'))] : ['nullable', Rule::in(config('departments'))],
             // optional role assignment
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['integer', 'exists:roles,id', 'distinct'],
-            // mark email as verified immediately
-            'verified' => ['sometimes', 'boolean'],
         ]);
 
         $user = new User();
@@ -54,9 +59,8 @@ class UserController extends Controller
         $user->department = $validated['department'] ?? null;
         $user->password = Hash::make($validated['password']);
 
-        if (!empty($validated['verified'])) {
-            $user->email_verified_at = now();
-        }
+        // Default all new users to verified
+        $user->email_verified_at = now();
 
         $user->save();
 
@@ -87,14 +91,20 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
+        // Check if receptionist role is selected to make department required
+        $isReceptionist = false;
+        if (!empty($request->input('roles'))) {
+            $receptionistRole = Role::where('name', 'receptionist')->first();
+            $isReceptionist = $receptionistRole && in_array($receptionistRole->id, $request->input('roles', []));
+        }
+
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => ['sometimes', 'required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'department' => ['sometimes', 'nullable', Rule::in(config('departments'))],
+            'department' => $isReceptionist ? ['sometimes', 'required', Rule::in(config('departments'))] : ['sometimes', 'nullable', Rule::in(config('departments'))],
             'roles' => ['sometimes', 'array'],
             'roles.*' => ['integer', 'exists:roles,id', 'distinct'],
-            'verified' => ['sometimes', 'boolean'],
         ]);
 
         if (array_key_exists('name', $validated)) {
@@ -109,9 +119,7 @@ class UserController extends Controller
         if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
-        if (array_key_exists('verified', $validated)) {
-            $user->email_verified_at = $validated['verified'] ? now() : null;
-        }
+
 
         $user->save();
 
