@@ -39,6 +39,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('patients', [PatientController::class, 'store'])->name('patients.store');
         Route::patch('patients/{patient}', [PatientController::class, 'update'])->name('patients.update');
         Route::delete('patients/{patient}', [PatientController::class, 'destroy'])->name('patients.destroy');
+
+        Route::post('service-offerings', [ServiceOfferingController::class, 'store'])->name('service-offerings.store');
+        Route::patch('service-offerings/{serviceOffering}', [ServiceOfferingController::class, 'update'])->name('service-offerings.update');
+        Route::delete('service-offerings/{serviceOffering}', [ServiceOfferingController::class, 'destroy'])->name('service-offerings.destroy');
     });
 });
 
