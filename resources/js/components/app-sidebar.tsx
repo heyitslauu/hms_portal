@@ -2,44 +2,12 @@ import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import { hasPermission } from '@/hooks/usePermissions';
 import { dashboard, patients, permissions, roles, serviceOfferings, users } from '@/routes';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { BookOpen, Folder, IdCard, LayoutGrid, LayoutList, Shield, ShieldPlus, SquareUserIcon } from 'lucide-react';
 import AppLogo from './app-logo';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Permissions',
-        href: permissions(),
-        icon: Shield,
-    },
-    {
-        title: 'Roles',
-        href: roles(),
-        icon: IdCard,
-    },
-    {
-        title: 'Users',
-        href: users(),
-        icon: SquareUserIcon,
-    },
-    {
-        title: 'Patients',
-        href: patients(),
-        icon: ShieldPlus,
-    },
-    {
-        title: 'Service Offerings',
-        href: serviceOfferings(),
-        icon: LayoutList,
-    },
-];
 
 const footerNavItems: NavItem[] = [
     {
@@ -55,6 +23,50 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const allNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+        {
+            title: 'Permissions',
+            href: permissions(),
+            icon: Shield,
+            permission: 'manage_permissions',
+        },
+        {
+            title: 'Roles',
+            href: roles(),
+            icon: IdCard,
+            permission: 'manage_roles',
+        },
+        {
+            title: 'Users',
+            href: users(),
+            icon: SquareUserIcon,
+            permission: 'manage_users',
+        },
+        {
+            title: 'Patients',
+            href: patients(),
+            icon: ShieldPlus,
+        },
+        {
+            title: 'Service Offerings',
+            href: serviceOfferings(),
+            icon: LayoutList,
+        },
+    ];
+
+    const mainNavItems = allNavItems.filter((item) => {
+        if (!item.permission) {
+            return true;
+        }
+
+        return hasPermission(item.permission);
+    });
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
