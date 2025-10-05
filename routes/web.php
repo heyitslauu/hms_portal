@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\PermissionController;
@@ -9,6 +10,9 @@ use App\Http\Controllers\PatientController;
 use App\Http\Controllers\ServiceOfferingController;
 
 Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route('dashboard');
+    }
     return Inertia::render('welcome');
 })->name('home');
 
