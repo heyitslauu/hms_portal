@@ -5,9 +5,12 @@ namespace App\Http\Controllers;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Models\Patient;
+use App\Models\ServiceOffering;
+use App\Models\ServiceResult;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
@@ -35,8 +38,32 @@ class PatientController extends Controller
     {
         $patient->load(['user:id,name,email,created_at']);
 
+        // Get authenticated user's department
+        $user = Auth::user();
+        $department = $user->department;
+
+        // Initialize data arrays
+        $serviceOfferings = [];
+        $serviceResults = [];
+
+        if ($department) {
+            $serviceOfferings = ServiceOffering::where('type', $department)
+                ->where('is_available', true)
+                ->orderBy('name')
+                ->get();
+
+            // Get service results for this patient uploaded by current authenticated user
+            $serviceResults = ServiceResult::where('patient_id', $patient->id)
+                ->where('uploaded_by', $user->id)
+                ->with(['uploadedBy:id,name,email'])
+                ->latest('created_at')
+                ->get();
+        }
+
         return Inertia::render('patients/show', [
             'patient' => $patient,
+            'serviceOfferings' => $serviceOfferings,
+            'serviceResults' => $serviceResults,
         ]);
     }
 
