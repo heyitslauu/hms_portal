@@ -4,7 +4,7 @@ import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Form, Head, usePage } from '@inertiajs/react';
 import { type ColumnDef, flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { LoaderCircle, Pencil, Plus, Trash2 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import Pagination from '@/components/pagination';
 import { Button } from '@/components/ui/button';
@@ -39,6 +39,8 @@ export default function Users() {
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
     const [selected, setSelected] = useState<User | null>(null);
+    const [selectedRoles, setSelectedRoles] = useState<number[]>([]);
+    const [editSelectedRoles, setEditSelectedRoles] = useState<number[]>([]);
 
     const columns: ColumnDef<User>[] = useMemo(
         () => [
@@ -84,6 +86,14 @@ export default function Users() {
 
     const table = useReactTable({ data, columns, getCoreRowModel: getCoreRowModel() });
 
+    // Initialize edit role state when selected user changes
+    useEffect(() => {
+        if (selected && editOpen) {
+            const roleIds = selected.roles?.map((r) => r.id) || [];
+            setEditSelectedRoles(roleIds);
+        }
+    }, [selected, editOpen]);
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Users" />
@@ -105,7 +115,13 @@ export default function Users() {
                             <DialogTitle>Create user</DialogTitle>
                             <DialogDescription>Create a user and optionally assign roles.</DialogDescription>
                         </DialogHeader>
-                        <Form {...users.store.form()} onSuccess={() => setCreateOpen(false)}>
+                        <Form
+                            {...users.store.form()}
+                            onSuccess={() => {
+                                setCreateOpen(false);
+                                setSelectedRoles([]);
+                            }}
+                        >
                             {({ processing, errors }) => (
                                 <>
                                     <div className="grid gap-2 py-2">
@@ -130,24 +146,31 @@ export default function Users() {
                                             placeholder="Confirm password"
                                         />
                                     </div>
-                                    <div className="grid gap-2 py-2">
-                                        <label htmlFor="department" className="text-sm font-medium">
-                                            Department
-                                        </label>
-                                        <select
-                                            id="department"
-                                            name="department"
-                                            className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                                        >
-                                            <option value="">Select department</option>
-                                            {departments?.map((d) => (
-                                                <option key={d} value={d}>
-                                                    {d}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {errors.department && <p className="text-sm text-red-600">{String(errors.department)}</p>}
-                                    </div>
+                                    {(() => {
+                                        const receptionistRole = allRoles?.find((r) => r.name.toLowerCase() === 'receptionist');
+                                        const showDepartment = receptionistRole && selectedRoles.includes(receptionistRole.id);
+                                        return showDepartment ? (
+                                            <div className="grid gap-2 py-2">
+                                                <label htmlFor="department" className="text-sm font-medium">
+                                                    Department *
+                                                </label>
+                                                <select
+                                                    id="department"
+                                                    name="department"
+                                                    required
+                                                    className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                                                >
+                                                    <option value="">Select department</option>
+                                                    {departments?.map((d) => (
+                                                        <option key={d} value={d}>
+                                                            {d}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                {errors.department && <p className="text-sm text-red-600">{String(errors.department)}</p>}
+                                            </div>
+                                        ) : null;
+                                    })()}
                                     <div className="grid max-h-[200px] gap-2 overflow-auto py-2 pr-1">
                                         <div className="text-sm font-medium">Roles</div>
                                         {!allRoles?.length && <p className="text-sm text-muted-foreground">No roles available.</p>}
@@ -157,6 +180,13 @@ export default function Users() {
                                                     type="checkbox"
                                                     name="roles[]"
                                                     value={r.id}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setSelectedRoles((prev) => [...prev, r.id]);
+                                                        } else {
+                                                            setSelectedRoles((prev) => prev.filter((id) => id !== r.id));
+                                                        }
+                                                    }}
                                                     className="size-4 rounded border border-input text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                                                 />
                                                 <span className="text-sm">{r.name}</span>
@@ -171,13 +201,7 @@ export default function Users() {
                                                 </p>
                                             ))}
                                     </div>
-                                    <div className="flex items-center gap-2 py-2">
-                                        <input type="hidden" name="verified" value="0" />
-                                        <input id="verified" name="verified" type="checkbox" value="1" className="size-4" />
-                                        <label htmlFor="verified" className="text-sm">
-                                            Mark email as verified
-                                        </label>
-                                    </div>
+
                                     <DialogFooter>
                                         <Button type="submit" disabled={processing}>
                                             {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
@@ -203,6 +227,7 @@ export default function Users() {
                                 onSuccess={() => {
                                     setEditOpen(false);
                                     setSelected(null);
+                                    setEditSelectedRoles([]);
                                 }}
                             >
                                 {({ processing, errors }) => (
@@ -215,25 +240,32 @@ export default function Users() {
                                             <Input id="email" name="email" type="email" placeholder="Email address" defaultValue={selected.email} />
                                             {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
                                         </div>
-                                        <div className="grid gap-2 py-2">
-                                            <label htmlFor="department" className="text-sm font-medium">
-                                                Department
-                                            </label>
-                                            <select
-                                                id="department"
-                                                name="department"
-                                                defaultValue={selected.department ?? ''}
-                                                className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
-                                            >
-                                                <option value="">Select department</option>
-                                                {departments?.map((d) => (
-                                                    <option key={d} value={d}>
-                                                        {d}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            {errors.department && <p className="text-sm text-red-600">{String(errors.department)}</p>}
-                                        </div>
+                                        {(() => {
+                                            const receptionistRole = allRoles?.find((r) => r.name.toLowerCase() === 'receptionist');
+                                            const showDepartment = receptionistRole && editSelectedRoles.includes(receptionistRole.id);
+                                            return showDepartment ? (
+                                                <div className="grid gap-2 py-2">
+                                                    <label htmlFor="department" className="text-sm font-medium">
+                                                        Department *
+                                                    </label>
+                                                    <select
+                                                        id="department"
+                                                        name="department"
+                                                        defaultValue={selected.department ?? ''}
+                                                        required
+                                                        className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+                                                    >
+                                                        <option value="">Select department</option>
+                                                        {departments?.map((d) => (
+                                                            <option key={d} value={d}>
+                                                                {d}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {errors.department && <p className="text-sm text-red-600">{String(errors.department)}</p>}
+                                                </div>
+                                            ) : null;
+                                        })()}
                                         <div className="grid max-h-[200px] gap-2 overflow-auto py-2 pr-1">
                                             <div className="text-sm font-medium">Roles</div>
                                             {!allRoles?.length && <p className="text-sm text-muted-foreground">No roles available.</p>}
@@ -246,6 +278,13 @@ export default function Users() {
                                                             name="roles[]"
                                                             value={r.id}
                                                             defaultChecked={assigned}
+                                                            onChange={(e) => {
+                                                                if (e.target.checked) {
+                                                                    setEditSelectedRoles((prev) => [...prev, r.id]);
+                                                                } else {
+                                                                    setEditSelectedRoles((prev) => prev.filter((id) => id !== r.id));
+                                                                }
+                                                            }}
                                                             className="size-4 rounded border border-input text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                                                         />
                                                         <span className="text-sm">{r.name}</span>
@@ -273,20 +312,7 @@ export default function Users() {
                                                 <p className="text-sm text-red-600">{errors.password}</p>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 py-2">
-                                            <input type="hidden" name="verified" value="0" />
-                                            <input
-                                                id="verified"
-                                                name="verified"
-                                                type="checkbox"
-                                                value="1"
-                                                className="size-4"
-                                                defaultChecked={false}
-                                            />
-                                            <label htmlFor="verified" className="text-sm">
-                                                Mark email as verified
-                                            </label>
-                                        </div>
+
                                         <DialogFooter>
                                             <Button type="submit" disabled={processing}>
                                                 {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
